@@ -1,0 +1,198 @@
+From 47b67f8f2f2f588e590518998465c23b6122b71c Mon Sep 17 00:00:00 2001
+From: Bert Persyn <bert.persyn@gmail.com>
+Date: Wed, 25 Dec 2019 10:25:07 +0100
+Subject: [PATCH 1/4] fix ([issue
+ 627](https://github.com/gluster/gluster-kubernetes/issues/627)): adjusted
+ deploy/kube-templates so they work on k8s >= 1.16
+
+---
+ README.md                                           | 4 ++++
+ deploy/kube-templates/deploy-heketi-deployment.yaml | 2 +-
+ deploy/kube-templates/gluster-s3-template.yaml      | 2 +-
+ deploy/kube-templates/glusterfs-daemonset.yaml      | 6 +++++-
+ deploy/kube-templates/heketi-deployment.yaml        | 2 +-
+ 5 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/README.md b/README.md
+index 3bae6993..8d06b2fd 100644
+--- a/README.md
++++ b/README.md
+@@ -2,6 +2,10 @@
+ 
+ [![Build Status](https://travis-ci.org/gluster/gluster-kubernetes.svg?branch=master)](https://travis-ci.org/gluster/gluster-kubernetes)
+ 
++## bert.persyn -> Changelog 
++
++* fix ([issue 627](https://github.com/gluster/gluster-kubernetes/issues/627)): adjusted deploy/kube-templates so they work on k8s >= 1.16
++
+ ## GlusterFS Native Storage Service for Kubernetes
+ 
+ **gluster-kubernetes** is a project to provide Kubernetes administrators a
+diff --git a/deploy/kube-templates/deploy-heketi-deployment.yaml b/deploy/kube-templates/deploy-heketi-deployment.yaml
+index 94f2cf7d..030fca14 100644
+--- a/deploy/kube-templates/deploy-heketi-deployment.yaml
++++ b/deploy/kube-templates/deploy-heketi-deployment.yaml
+@@ -17,7 +17,7 @@ spec:
+     targetPort: 8080
+ ---
+ kind: Deployment
+-apiVersion: extensions/v1beta1
++apiVersion: apps/v1
+ metadata:
+   name: deploy-heketi
+   labels:
+diff --git a/deploy/kube-templates/gluster-s3-template.yaml b/deploy/kube-templates/gluster-s3-template.yaml
+index 60045bc1..5a391a9f 100644
+--- a/deploy/kube-templates/gluster-s3-template.yaml
++++ b/deploy/kube-templates/gluster-s3-template.yaml
+@@ -21,7 +21,7 @@ items:
+   status:
+     loadBalancer: {}
+ - kind: Deployment
+-  apiVersion: extensions/v1beta1
++  apiVersion: apps/v1
+   metadata:
+     name: gluster-s3-deployment
+     labels:
+diff --git a/deploy/kube-templates/glusterfs-daemonset.yaml b/deploy/kube-templates/glusterfs-daemonset.yaml
+index c37a5f41..5f37d67a 100644
+--- a/deploy/kube-templates/glusterfs-daemonset.yaml
++++ b/deploy/kube-templates/glusterfs-daemonset.yaml
+@@ -1,6 +1,6 @@
+ ---
+ kind: DaemonSet
+-apiVersion: extensions/v1beta1
++apiVersion: apps/v1
+ metadata:
+   name: glusterfs
+   labels:
+@@ -9,6 +9,10 @@ metadata:
+     description: GlusterFS DaemonSet
+     tags: glusterfs
+ spec:
++  selector:
++    matchLabels:
++      glusterfs: pod
++      glusterfs-node: pod
+   template:
+     metadata:
+       name: glusterfs
+diff --git a/deploy/kube-templates/heketi-deployment.yaml b/deploy/kube-templates/heketi-deployment.yaml
+index ecc6cefa..38873287 100644
+--- a/deploy/kube-templates/heketi-deployment.yaml
++++ b/deploy/kube-templates/heketi-deployment.yaml
+@@ -17,7 +17,7 @@ spec:
+     targetPort: 8080
+ ---
+ kind: Deployment
+-apiVersion: extensions/v1beta1
++apiVersion: apps/v1
+ metadata:
+   name: heketi
+   labels:
+
+From 20911e2ac6f7ba5bb68c1cd3bd2d3cc8cb3c487e Mon Sep 17 00:00:00 2001
+From: Bert Persyn <bert.persyn@gmail.com>
+Date: Wed, 25 Dec 2019 19:06:57 +0100
+Subject: [PATCH 2/4] fix: selectors for heketi
+
+---
+ deploy/kube-templates/deploy-heketi-deployment.yaml | 4 ++++
+ deploy/kube-templates/heketi-deployment.yaml        | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/deploy/kube-templates/deploy-heketi-deployment.yaml b/deploy/kube-templates/deploy-heketi-deployment.yaml
+index 030fca14..46719843 100644
+--- a/deploy/kube-templates/deploy-heketi-deployment.yaml
++++ b/deploy/kube-templates/deploy-heketi-deployment.yaml
+@@ -26,6 +26,10 @@ metadata:
+   annotations:
+     description: Defines how to deploy Heketi
+ spec:
++  selector:
++    matchLabels:
++      glusterfs: heketi-deployment
++      deploy-heketi: deployment
+   replicas: 1
+   template:
+     metadata:
+diff --git a/deploy/kube-templates/heketi-deployment.yaml b/deploy/kube-templates/heketi-deployment.yaml
+index 38873287..8f0fabfb 100644
+--- a/deploy/kube-templates/heketi-deployment.yaml
++++ b/deploy/kube-templates/heketi-deployment.yaml
+@@ -26,6 +26,10 @@ metadata:
+   annotations:
+     description: Defines how to deploy Heketi
+ spec:
++  selector:
++    matchLabels:
++      glusterfs: heketi-deployment
++      heketi: deployment
+   replicas: 1
+   template:
+     metadata:
+
+From a51ea6b09ab27416fb64eda4eccb6a780c6725bc Mon Sep 17 00:00:00 2001
+From: Bert Persyn <bert.persyn@gmail.com>
+Date: Wed, 25 Dec 2019 19:12:21 +0100
+Subject: [PATCH 3/4] fix: use correct labels for spec selector
+
+---
+ deploy/kube-templates/deploy-heketi-deployment.yaml | 4 ++--
+ deploy/kube-templates/heketi-deployment.yaml        | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/deploy/kube-templates/deploy-heketi-deployment.yaml b/deploy/kube-templates/deploy-heketi-deployment.yaml
+index 46719843..e8a7938b 100644
+--- a/deploy/kube-templates/deploy-heketi-deployment.yaml
++++ b/deploy/kube-templates/deploy-heketi-deployment.yaml
+@@ -28,8 +28,8 @@ metadata:
+ spec:
+   selector:
+     matchLabels:
+-      glusterfs: heketi-deployment
+-      deploy-heketi: deployment
++      glusterfs: heketi-pod
++      deploy-heketi: pod
+   replicas: 1
+   template:
+     metadata:
+diff --git a/deploy/kube-templates/heketi-deployment.yaml b/deploy/kube-templates/heketi-deployment.yaml
+index 8f0fabfb..f87cbb2e 100644
+--- a/deploy/kube-templates/heketi-deployment.yaml
++++ b/deploy/kube-templates/heketi-deployment.yaml
+@@ -28,8 +28,8 @@ metadata:
+ spec:
+   selector:
+     matchLabels:
+-      glusterfs: heketi-deployment
+-      heketi: deployment
++      glusterfs: heketi-pod
++      heketi: pod
+   replicas: 1
+   template:
+     metadata:
+
+From 6f0063bc0ae4e23243c564c30e214aef383343f0 Mon Sep 17 00:00:00 2001
+From: Bert Persyn <bert.persyn@gmail.com>
+Date: Sun, 29 Dec 2019 12:47:31 +0100
+Subject: [PATCH 4/4] fix: remove deprecated --show-all arg (kubectl) in
+ gh-deploy
+
+---
+ deploy/gk-deploy | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/deploy/gk-deploy b/deploy/gk-deploy
+index e3735e14..4309b92d 100755
+--- a/deploy/gk-deploy
++++ b/deploy/gk-deploy
+@@ -921,7 +921,7 @@ while [[ "x${heketi_service}" == "x" ]] || [[ "${heketi_service}" == "<none>" ]]
+   heketi_service=$(${CLI} describe svc/heketi | grep "Endpoints:" | awk '{print $2}')
+ done
+ 
+-heketi_pod=$(${CLI} get pod --no-headers --show-all --selector="heketi" | awk '{print $1}')
++heketi_pod=$(${CLI} get pod --no-headers --selector="heketi" | awk '{print $1}')
+ 
+ if [[ "${CLI}" == *oc\ * ]]; then
+   heketi_service=$(${CLI} describe routes/heketi | grep "Requested Host:" | awk '{print $3}')
